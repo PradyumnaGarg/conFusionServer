@@ -8,10 +8,19 @@ var authenticate = require("../authenticate");
 router.use(bodyParser.json());
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+
+// End point for /users
+router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+  Users.find({})
+  .then((users) => {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(users);
+  }, (err) => next(err))
+  .catch((err) => next(err));
 });
 
+// End point for /users/signup
 router.post('/signup', (req, res, next) => {
   Users.register(new Users({username: req.body.username}), req.body.password, (err, user) => {
     if(err) {
@@ -41,13 +50,15 @@ router.post('/signup', (req, res, next) => {
   });
 });
 
+// End point for /users/login
 router.post("/login", passport.authenticate('local'), (req, res) => {
   var token = authenticate.getToken({_id: req.user._id});
-  res.statusCode =200;
+  res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
   res.json({ success: true, token: token, status: "You are successfully logged in!"});
 });
 
+// End point for /users/logout
 router.get("/logout", (req, res, next) => {
   if(req.user) {
     res.session.destroy();
