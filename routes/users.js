@@ -4,13 +4,15 @@ var bodyParser = require("body-parser");
 var passport = require("passport");
 const Users = require("../models/users");
 var authenticate = require("../authenticate");
+const cors = require("./cors");
 
 router.use(bodyParser.json());
 
 /* GET users listing. */
 
 // End point for /users
-router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+router
+.get('/', cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
   Users.find({})
   .then((users) => {
     res.statusCode = 200;
@@ -21,7 +23,7 @@ router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, ne
 });
 
 // End point for /users/signup
-router.post('/signup', (req, res, next) => {
+router.post('/signup', cors.corsWithOptions,  (req, res, next) => {
   Users.register(new Users({username: req.body.username}), req.body.password, (err, user) => {
     if(err) {
       res.statusCode = 500;
@@ -51,7 +53,7 @@ router.post('/signup', (req, res, next) => {
 });
 
 // End point for /users/login
-router.post("/login", passport.authenticate('local'), (req, res) => {
+router.post("/login", cors.corsWithOptions, passport.authenticate('local'), (req, res) => {
   var token = authenticate.getToken({_id: req.user._id});
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
@@ -59,7 +61,7 @@ router.post("/login", passport.authenticate('local'), (req, res) => {
 });
 
 // End point for /users/logout
-router.get("/logout", (req, res, next) => {
+router.get("/logout", cors.corsWithOptions,  (req, res, next) => {
   if(req.user) {
     res.session.destroy();
     res.clearCookie('session-id');
@@ -71,5 +73,12 @@ router.get("/logout", (req, res, next) => {
     next(err);
   }
 });
+
+router.get('/facebook/token', passport.authenticate('facebook-token'), (req,res) => {
+  var token = authenticate.getToken({_id: req.user._id});
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "application/json");
+  res.json({ success: true, token: token, status: "You are successfully logged in!"});
+})
 
 module.exports = router;
